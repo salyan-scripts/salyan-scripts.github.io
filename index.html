@@ -3,217 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bíblia Digital Comparativa</title>
+    <title>Bíblia Comparativa</title>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #ffffff; --text: #1a1a1a; --accent: #2c3e50; 
-            --verse-bg: #fdfdfd; --border: #eeeeee; --nvi-color: #636e72;
+            --bg: #ffffff; --text: #1a1a1a; --border: #eeeeee; --accent: #3498db;
         }
         [data-theme="dark"] {
-            --bg: #121212; --text: #e0e0e0; --accent: #ecf0f1; 
-            --verse-bg: #1e1e1e; --border: #333333; --nvi-color: #a29bfe;
+            --bg: #121212; --text: #e0e0e0; --border: #333333; --accent: #5dade2;
         }
-
-        body { 
-            margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
-            transition: 0.3s;
-        }
-
-        header {
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+        
+        header { 
             position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border);
-            padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1000;
+            padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100;
         }
 
-        .nav-controls { display: flex; gap: 8px; align-items: center; }
+        .controls { display: flex; gap: 10px; }
+        button { padding: 8px 15px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; }
+        button.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        main { max-width: 900px; margin: 0 auto; padding: 20px; }
         
-        button {
-            padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
-            background: var(--verse-bg); color: var(--text); cursor: pointer; font-size: 14px;
-        }
-
-        button.active { background: #4a90e2; color: white; border-color: #4a90e2; }
-
-        main { max-width: 1000px; margin: 0 auto; padding: 20px; }
-
-        #title-display { cursor: pointer; font-size: 1.2rem; font-weight: 600; margin: 0; }
-
-        /* Estrutura de Comparação */
-        .verse-row {
-            display: grid; grid-template-columns: 1fr; 
-            gap: 10px; padding: 15px 0; border-bottom: 1px solid var(--border);
-        }
-
-        /* Quando o modo comparativo está ativo */
-        .dual-mode .verse-row { grid-template-columns: 1fr 1fr; gap: 20px; }
-
-        .verse-content { font-family: 'Crimson Pro', serif; font-size: 1.3rem; line-height: 1.6; }
+        /* Estilo da Comparação Vertical */
+        .verse-container { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .verse-text { font-family: 'Crimson Pro', serif; font-size: 1.25rem; line-height: 1.5; margin-bottom: 8px; }
+        .v-label { font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; background: var(--border); margin-right: 8px; }
+        .v-num { font-weight: bold; color: var(--accent); margin-right: 10px; }
         
-        .verse-num { 
-            font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: bold; 
-            color: #4a90e2; display: block; margin-bottom: 5px;
-        }
+        .nvi-text { color: #7f8c8d; } /* Cor um pouco diferente para a NVI */
+        [data-theme="dark"] .nvi-text { color: #95a5a6; }
 
-        .version-label {
-            font-size: 0.7rem; font-weight: bold; text-transform: uppercase;
-            color: var(--nvi-color); margin-bottom: 4px; display: block;
-        }
-
-        /* Overlay de Navegação */
-        .overlay {
-            position: fixed; inset: 0; background: var(--bg); display: none;
-            z-index: 2000; padding: 20px; overflow-y: auto;
-        }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 20px; }
+        .overlay { position: fixed; inset: 0; background: var(--bg); display: none; z-index: 200; padding: 20px; overflow-y: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 20px; }
         .card { padding: 15px; border: 1px solid var(--border); border-radius: 8px; text-align: center; cursor: pointer; }
-
-        @media (max-width: 768px) {
-            .dual-mode .verse-row { grid-template-columns: 1fr; } /* No celular, um sob o outro */
-            .verse-row { padding: 10px 0; }
-            .verse-content { font-size: 1.15rem; }
-        }
+        
+        #error-msg { color: red; text-align: center; padding: 20px; display: none; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1 id="title-display" onclick="openNav()">Carregando...</h1>
-    <div class="nav-controls">
-        <button id="btn-dual" onclick="toggleDualMode()">Comparar NVI</button>
-        <button onclick="changeFontSize(1)">A+</button>
+    <h2 id="current-title" onclick="openNav()" style="cursor:pointer">Carregando...</h2>
+    <div class="controls">
+        <button id="btn-compare" onclick="toggleCompare()">Comparar NVI</button>
         <button onclick="toggleTheme()">🌓</button>
     </div>
 </header>
 
-<main id="bible-container">
-    </main>
+<div id="error-msg">Ops! Não conseguimos carregar os arquivos da Bíblia. Verifique se acf.json e nvi.json estão na pasta.</div>
 
-<div id="nav-overlay" class="overlay">
-    <button onclick="closeNav()" style="float: right;">Fechar</button>
-    <h2>Livros</h2>
+<main id="bible-content"></main>
+
+<div id="nav-books" class="overlay">
+    <h3>Escolha o Livro</h3>
     <div id="book-grid" class="grid"></div>
 </div>
 
-<div id="chap-overlay" class="overlay">
-    <button onclick="backToBooks()" style="float: right;">Voltar</button>
-    <h2>Capítulos</h2>
+<div id="nav-chaps" class="overlay">
+    <button onclick="closeOverlay('nav-chaps')">Voltar</button>
+    <h3>Capítulos</h3>
     <div id="chap-grid" class="grid"></div>
 </div>
 
 <script>
-    let dataACF = [], dataNVI = [];
-    let currentBook = 0, currentChap = 0;
-    let isDualMode = false;
+    let bibleACF = null;
+    let bibleNVI = null;
+    let currentB = 0;
+    let currentC = 0;
+    let compareMode = false;
 
-    async function loadData() {
-        // Carrega ambos os arquivos simultaneamente
-        const [resACF, resNVI] = await Promise.all([
-            fetch('acf.json'),
-            fetch('nvi.json')
-        ]);
-        dataACF = await resACF.json();
-        dataNVI = await resNVI.json();
+    // Mapeamento simples de abreviação para Nome (Já que seus JSONs não tem o campo 'name')
+    const bookNames = {"gn": "Gênesis", "ex": "Êxodo", "lv": "Levítico", "nm": "Números", "dt": "Deuteronômio", "js": "Josué", "jz": "Juízes", "rt": "Rute", "1sm": "1 Samuel", "2sm": "2 Samuel", "1rs": "1 Reis", "2rs": "2 Reis", "1cr": "1 Crônicas", "2cr": "2 Crônicas", "ed": "Esdras", "ne": "Neemias", "et": "Ester", "jó": "Jó", "sl": "Salmos", "pv": "Provérbios", "ec": "Eclesiastes", "ct": "Cantares", "is": "Isaías", "jr": "Jeremias", "lm": "Lamentações", "ez": "Ezequiel", "dn": "Daniel", "os": "Oséias", "jl": "Joel", "am": "Amós", "ob": "Obadias", "jn": "Jonas", "mq": "Miquéias", "na": "Naum", "hc": "Habacuque", "sf": "Sofonias", "ag": "Ageu", "zc": "Zacarias", "ml": "Malaquias", "mt": "Mateus", "mc": "Marcos", "lc": "Lucas", "jo": "João", "at": "Atos", "rm": "Romanos", "1co": "1 Coríntios", "2co": "2 Coríntios", "gl": "Gálatas", "ef": "Efésios", "fp": "Filipenses", "cl": "Colossenses", "1ts": "1 Tessalonicenses", "2ts": "2 Tessalonicenses", "1tm": "1 Timóteo", "2tm": "2 Timóteo", "tt": "Tito", "fm": "Filemon", "hb": "Hebreus", "tg": "Tiago", "1pe": "1 Pedro", "2pe": "2 Pedro", "1jo": "1 João", "2jo": "2 João", "3jo": "3 João", "jd": "Judas", "ap": "Apocalipse"};
 
-        currentBook = parseInt(localStorage.getItem('lastB')) || 0;
-        currentChap = parseInt(localStorage.getItem('lastC')) || 0;
-        isDualMode = localStorage.getItem('dual') === 'true';
+    async function start() {
+        try {
+            const [res1, res2] = await Promise.all([
+                fetch('acf.json'),
+                fetch('nvi.json')
+            ]);
+            
+            if (!res1.ok || !res2.ok) throw new Error("Erro ao baixar arquivos");
 
-        if(isDualMode) document.getElementById('btn-dual').classList.add('active');
-        
-        renderBooks();
-        renderChapter();
+            bibleACF = await res1.json();
+            bibleNVI = await res2.json();
+
+            // Pega progresso salvo
+            currentB = parseInt(localStorage.getItem('savedB')) || 0;
+            currentC = parseInt(localStorage.getItem('savedC')) || 0;
+            compareMode = localStorage.getItem('compare') === 'true';
+
+            if(compareMode) document.getElementById('btn-compare').classList.add('active');
+
+            renderBooks();
+            displayChapter();
+        } catch (err) {
+            console.error(err);
+            document.getElementById('error-msg').style.display = 'block';
+        }
     }
 
-    function renderChapter() {
-        const container = document.getElementById('bible-container');
-        const bookACF = dataACF[currentBook];
-        const bookNVI = dataNVI[currentBook];
-        
-        document.getElementById('title-display').innerText = `${bookACF.name || bookACF.abbrev.toUpperCase()} ${currentChap + 1}`;
-        
-        if (isDualMode) container.classList.add('dual-mode');
-        else container.classList.remove('dual-mode');
+    function displayChapter() {
+        const container = document.getElementById('bible-content');
+        const bookA = bibleACF[currentB];
+        const bookN = bibleNVI[currentB];
+        const chapA = bookA.chapters[currentC];
+        const chapN = bookN.chapters[currentC];
+
+        const fullName = bookNames[bookA.abbrev.toLowerCase()] || bookA.abbrev.toUpperCase();
+        document.getElementById('current-title').innerText = `${fullName} ${currentC + 1}`;
 
         let html = '';
-        const versesACF = bookACF.chapters[currentChap];
-        const versesNVI = bookNVI.chapters[currentChap];
-
-        versesACF.forEach((vText, i) => {
+        chapA.forEach((verse, i) => {
             html += `
-                <div class="verse-row">
-                    <div class="verse-content">
-                        <span class="verse-num">${i+1}</span>
-                        ${isDualMode ? '<span class="version-label">ACF</span>' : ''}
-                        ${vText}
+                <div class="verse-container">
+                    <div class="verse-text">
+                        <span class="v-num">${i+1}</span>
+                        ${compareMode ? '<span class="v-label">ACF</span>' : ''}
+                        ${verse}
                     </div>
-                    ${isDualMode ? `
-                    <div class="verse-content" style="color: var(--nvi-color)">
-                        <span class="version-label">NVI</span>
-                        ${versesNVI[i] || '---'}
+                    ${compareMode ? `
+                    <div class="verse-text nvi-text">
+                        <span class="v-label">NVI</span>
+                        ${chapN[i] || '[Versículo não disponível nesta versão]'}
                     </div>` : ''}
                 </div>
             `;
         });
 
         container.innerHTML = html;
+        localStorage.setItem('savedB', currentB);
+        localStorage.setItem('savedC', currentC);
         window.scrollTo(0,0);
-        localStorage.setItem('lastB', currentBook);
-        localStorage.setItem('lastC', currentChap);
     }
 
-    function toggleDualMode() {
-        isDualMode = !isDualMode;
-        localStorage.setItem('dual', isDualMode);
-        document.getElementById('btn-dual').classList.toggle('active');
-        renderChapter();
+    function toggleCompare() {
+        compareMode = !compareMode;
+        localStorage.setItem('compare', compareMode);
+        document.getElementById('btn-compare').classList.toggle('active');
+        displayChapter();
     }
 
     function renderBooks() {
         const grid = document.getElementById('book-grid');
-        grid.innerHTML = dataACF.map((b, i) => `
-            <div class="card" onclick="openChapters(${i})">${b.name || b.abbrev.toUpperCase()}</div>
-        `).join('');
+        grid.innerHTML = bibleACF.map((b, i) => {
+            const name = bookNames[b.abbrev.toLowerCase()] || b.abbrev.toUpperCase();
+            return `<div class="card" onclick="openChapters(${i})">${name}</div>`;
+        }).join('');
     }
 
-    function openChapters(bookIndex) {
-        currentBook = bookIndex;
-        document.getElementById('nav-overlay').style.display = 'none';
-        document.getElementById('chap-overlay').style.display = 'block';
+    function openChapters(i) {
+        currentB = i;
+        document.getElementById('nav-books').style.display = 'none';
         const grid = document.getElementById('chap-grid');
-        grid.innerHTML = dataACF[bookIndex].chapters.map((_, i) => `
-            <div class="card" onclick="selectChap(${i})">${i+1}</div>
+        grid.innerHTML = bibleACF[i].chapters.map((_, c) => `
+            <div class="card" onclick="selectChap(${c})">${c+1}</div>
         `).join('');
+        document.getElementById('nav-chaps').style.display = 'block';
     }
 
-    function selectChap(chapIndex) {
-        currentChap = chapIndex;
-        document.getElementById('chap-overlay').style.display = 'none';
-        renderChapter();
+    function selectChap(c) {
+        currentC = c;
+        document.getElementById('nav-chaps').style.display = 'none';
+        displayChapter();
     }
 
-    // UI Helpers
-    function openNav() { document.getElementById('nav-overlay').style.display = 'block'; }
-    function closeNav() { document.getElementById('nav-overlay').style.display = 'none'; }
-    function backToBooks() { 
-        document.getElementById('chap-overlay').style.display = 'none'; 
-        document.getElementById('nav-overlay').style.display = 'block';
-    }
-    
+    function openNav() { document.getElementById('nav-books').style.display = 'block'; }
+    function closeOverlay(id) { document.getElementById(id).style.display = 'none'; }
     function toggleTheme() {
         const b = document.body;
         b.setAttribute('data-theme', b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     }
 
-    function changeFontSize(step) {
-        const currentSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-size') || 1.3);
-        const verses = document.querySelectorAll('.verse-content');
-        verses.forEach(v => {
-            const style = window.getComputedStyle(v).fontSize;
-            v.style.fontSize = (parseFloat(style) + 2) + 'px';
-        });
-    }
-
-    loadData();
+    start();
 </script>
 </body>
 </html>
