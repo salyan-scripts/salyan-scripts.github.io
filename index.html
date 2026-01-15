@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bíblia Sagrada Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #2d3436;
+            --accent-color: #6c5ce7;
+            --card-bg: #ffffff;
+            --verse-hover: #f1f2f6;
+            --font-serif: 'Crimson Pro', serif;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1e272e;
+            --text-color: #d2dae2;
+            --accent-color: #a29bfe;
+            --card-bg: #2f3640;
+            --verse-hover: #3d4652;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; transition: background 0.3s, color 0.3s; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+        }
+
+        /* Header e Controles */
+        header {
+            position: sticky;
+            top: 0;
+            background: var(--card-bg);
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .controls { display: flex; gap: 10px; }
+        button, select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        /* Container Principal */
+        main {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        #bible-text {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            text-align: justify;
+        }
+
+        .verse {
+            margin-bottom: 12px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .verse:hover { background: var(--verse-hover); }
+
+        .verse-number {
+            font-weight: bold;
+            color: var(--accent-color);
+            font-size: 0.8rem;
+            margin-right: 8px;
+            vertical-align: super;
+        }
+
+        /* Seletor de Livros/Capítulos */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .grid-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        .grid-item {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .grid-item:hover { background: var(--accent-color); color: white; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            #bible-text { font-size: 1.1rem; }
+            header h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="current-title" onclick="openNav()">Carregando...</h1>
+    <div class="controls">
+        <button onclick="toggleTheme()">🌓</button>
+        <button onclick="changeFontSize(1)">A+</button>
+        <button onclick="changeFontSize(-1)">A-</button>
+    </div>
+</header>
+
+<main>
+    <div id="bible-text">
+        </div>
+</main>
+
+<div id="navModal" class="modal" onclick="closeNav()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 style="margin-bottom:15px">Escolha o Livro</h2>
+        <div id="book-list" class="grid-list"></div>
+        <div id="chapter-list" class="grid-list" style="display:none"></div>
+    </div>
+</div>
+
+<script>
+    let bibleData = [];
+    let currentBook = 0;
+    let currentChapter = 0;
+
+    // 1. Carregar o JSON
+    async function loadBible() {
+        try {
+            const response = await fetch('acf.json');
+            bibleData = await response.json();
+            
+            // Carrega última leitura salva
+            currentBook = localStorage.getItem('lastBook') || 0;
+            currentChapter = localStorage.getItem('lastChapter') || 0;
+            
+            renderVerses();
+            setupNavigation();
+        } catch (e) {
+            document.getElementById('bible-text').innerHTML = "Erro ao carregar a bíblia. Verifique o arquivo acf.json";
+        }
+    }
+
+    // 2. Renderizar Versículos
+    function renderVerses() {
+        const book = bibleData[currentBook];
+        const chapter = book.chapters[currentChapter];
+        const container = document.getElementById('bible-text');
+        const title = document.getElementById('current-title');
+
+        title.innerText = `${book.name} - Cap. ${parseInt(currentChapter) + 1}`;
+        
+        container.innerHTML = chapter.map((verse, index) => `
+            <div class="verse">
+                <span class="verse-number">${index + 1}</span>${verse}
+            </div>
+        `).join('');
+
+        window.scrollTo(0,0);
+        
+        // Salvar progresso
+        localStorage.setItem('lastBook', currentBook);
+        localStorage.setItem('lastChapter', currentChapter);
+    }
+
+    // 3. Navegação
+    function setupNavigation() {
+        const bookList = document.getElementById('book-list');
+        bookList.innerHTML = bibleData.map((book, index) => `
+            <div class="grid-item" onclick="selectBook(${index})">${book.name}</div>
+        `).join('');
+    }
+
+    function selectBook(index) {
+        currentBook = index;
+        const chapterList = document.getElementById('chapter-list');
+        const bookList = document.getElementById('book-list');
+        
+        chapterList.innerHTML = bibleData[index].chapters.map((_, i) => `
+            <div class="grid-item" onclick="selectChapter(${i})">${i + 1}</div>
+        `).join('');
+        
+        bookList.style.display = 'none';
+        chapterList.style.display = 'grid';
+    }
+
+    function selectChapter(index) {
+        currentChapter = index;
+        closeNav();
+        renderVerses();
+        // Reseta o modal para a próxima abertura
+        setTimeout(() => {
+            document.getElementById('book-list').style.display = 'grid';
+            document.getElementById('chapter-list').style.display = 'none';
+        }, 500);
+    }
+
+    // Funções de Interface
+    function openNav() { document.getElementById('navModal').style.display = 'flex'; }
+    function closeNav() { document.getElementById('navModal').style.display = 'none'; }
+    
+    function toggleTheme() {
+        const theme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', theme);
+    }
+
+    function changeFontSize(delta) {
+        const el = document.getElementById('bible-text');
+        const style = window.getComputedStyle(el, null).getPropertyValue('font-size');
+        const currentSize = parseFloat(style);
+        el.style.fontSize = (currentSize + delta) + 'px';
+    }
+
+    // Iniciar
+    loadBible();
+</script>
+
+</body>
+</html>
