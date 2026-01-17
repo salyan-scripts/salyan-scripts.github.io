@@ -27,7 +27,6 @@ jobs:
 
       - name: Prepare Web Directory
         run: |
-          # O Capacitor exige que a pasta definida em webDir (www) exista
           mkdir -p www
           cp index.html sw.js manifest.json *.json www/ || echo "Arquivos copiados"
           cp icon.png www/ || echo "Icone copiado"
@@ -43,11 +42,13 @@ jobs:
           npx cap add android
           npx cap copy android
           
-      - name: Configure ARMv7
+      - name: Configure ARMv7 & SDK
         run: |
+          # Ajusta versões do SDK
           sed -i 's/minSdkVersion = .*/minSdkVersion = 24/' android/variables.gradle
           sed -i 's/targetSdkVersion = .*/targetSdkVersion = 33/' android/variables.gradle
-          echo 'android.bundle.enableUncompressedNativeLibs=false' >> android/gradle.properties
+          
+          # Configura suporte a 32 bits (ARMv7) via Split ABI
           sed -i '/buildTypes {/i           splits {              abi {                  enable true                  reset()                  include "armeabi-v7a", "arm64-v8a"                  universalApk true              }          }' android/app/build.gradle
 
       - name: Build with Gradle
@@ -59,5 +60,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BibliaPro-Final-APK
+          name: BibliaPro-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
