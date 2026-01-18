@@ -17,6 +17,24 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Force Resource Folders
+        run: |
+          # Cria as pastas que o Android exige para não dar erro de compilação
+          mkdir -p app/src/main/res/mipmap-mdpi
+          mkdir -p app/src/main/res/mipmap-hdpi
+          mkdir -p app/src/main/res/mipmap-xhdpi
+          mkdir -p app/src/main/res/mipmap-xxhdpi
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
+          
+          # Se o seu icon.png existir, copia ele para todas as densidades
+          if [ -f "icon.png" ]; then
+            cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          fi
+
       - name: Setup Android Project
         run: |
           gradle wrapper --gradle-version 8.4
@@ -27,23 +45,17 @@ jobs:
 
       - name: Rename APK
         run: |
-          # Move e renomeia o arquivo para o nome final desejado
           mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/com.salyan.biblia.apk
 
       - name: Create Release
-        id: create_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.${{ github.run_number }}
           name: Biblia Pro v1.${{ github.run_number }}
-          draft: false
-          prerelease: false
           files: app/build/outputs/apk/debug/com.salyan.biblia.apk
           body: |
             ### 📖 Bíblia Pro Instalador
-            Versão gerada automaticamente com suporte Offline.
-            - **ID:** com.salyan.biblia
-            - **Arquitetura:** ARMv7 (32-bit) + 64-bit
-            - **Modo:** Offline PWA-Inside-Native
+            Versão gerada com sucesso e ícones corrigidos.
+            - **Download:** com.salyan.biblia.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
