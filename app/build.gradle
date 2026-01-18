@@ -1,0 +1,24 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.salyan.biblia'
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.salyan.biblia"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+    splits {
+        abi {
+            enable true
+            include "armeabi-v7a", "arm64-v8a"
+            universalApk true
+        }
+    }
+}

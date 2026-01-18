@@ -1,4 +1,4 @@
-name: Build Nativo Completo
+name: Build Nativo
 on: [push]
 jobs:
   build:
@@ -12,59 +12,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Generate App Icons
+      - name: Generate Icons
         run: |
           npm install -g @capacitor/assets
           mkdir -p assets
-          cp icon.png assets/icon.png || echo "Sem icone"
-          # Gera os icones direto na pasta de recursos
-          npx @capacitor/assets generate --android --assetPath assets --androidProject app || echo "Pulo icones"
+          [ -f "icon.png" ] && cp icon.png assets/icon.png
+          npx @capacitor/assets generate --android --assetPath assets --androidProject app || echo "Icons failed"
 
-      - name: Setup Android Project Files
+      - name: Build APK
         run: |
-          # Cria o build.gradle da raiz
-          cat <<EOT > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-EOT
-          # Cria o build.gradle do App (Aqui configuramos ARMv7)
-          cat <<EOT > app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.salyan.biblia'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.salyan.biblia"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-              }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
-              }
-              // Garante suporte a 32 bits e 64 bits
-              splits {
-                  abi {
-                      enable true
-                      include "armeabi-v7a", "arm64-v8a"
-                      universalApk true
-                  }
-              }
-          }
-EOT
-
-      - name: Build with Gradle
-        run: |
-          # Comando mágico que instala o Gradle no servidor
           gradle wrapper --gradle-version 8.4
           chmod +x gradlew
           ./gradlew assembleDebug
@@ -72,5 +28,5 @@ EOT
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BibliaPro-Nativa-ARMv7
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Biblia-Final-APK
+          path: app/build/outputs/apk/debug/*.apk
