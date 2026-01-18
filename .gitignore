@@ -1,9 +1,16 @@
-super_setup.sh
-corrigir_build.sh
-corrigir_config.sh
-final_fix.sh
-fix_gradle_v2.sh
-build_nativo.sh
-add_icon.sh
-build_final_nativo.shfix_syntax.sh
-gerar_apk_final.sh
+# Scripts de automação
+*.sh
+
+# Node e Dependências
+node_modules/
+package-lock.json
+
+# Android e Build
+.gradle/
+build/
+app/build/
+*.apk
+
+# Segredos e Configurações locais
+.env
+capacitor.config.json
