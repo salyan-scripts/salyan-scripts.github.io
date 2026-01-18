@@ -1,4 +1,4 @@
-name: Build Nativo com Icone
+name: Build Nativo Completo
 on: [push]
 jobs:
   build:
@@ -12,19 +12,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Generate Android Icons
+      - name: Generate App Icons
         run: |
-          # Instalamos a ferramenta apenas no servidor (64bit)
           npm install -g @capacitor/assets
-          # Criamos uma estrutura temporária para a ferramenta funcionar
           mkdir -p assets
-          cp icon.png assets/icon.png
-          # Gera os ícones direto para a pasta de recursos do Android
-          npx @capacitor/assets generate --android --assetPath assets --androidProject app
-          
-      - name: Setup Gradle
+          cp icon.png assets/icon.png || echo "Sem icone"
+          # Gera os icones direto na pasta de recursos
+          npx @capacitor/assets generate --android --assetPath assets --androidProject app || echo "Pulo icones"
+
+      - name: Setup Android Project Files
         run: |
-          # Cria um arquivo build.gradle básico que o GitHub Actions entende
+          # Cria o build.gradle da raiz
           cat <<EOT > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -34,6 +32,7 @@ jobs:
               repositories { google(); mavenCentral() }
           }
 EOT
+          # Cria o build.gradle do App (Aqui configuramos ARMv7)
           cat <<EOT > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -45,18 +44,33 @@ EOT
                   targetSdk 34
                   versionCode 1
                   versionName "1.0"
+                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+              // Garante suporte a 32 bits e 64 bits
+              splits {
+                  abi {
+                      enable true
+                      include "armeabi-v7a", "arm64-v8a"
+                      universalApk true
+                  }
               }
           }
 EOT
 
-      - name: Build APK
+      - name: Build with Gradle
         run: |
-          # O wrapper do Gradle será gerado e usado para compilar
-          gradle wrapper
+          # Comando mágico que instala o Gradle no servidor
+          gradle wrapper --gradle-version 8.4
+          chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Biblia-Com-Icone-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: BibliaPro-Nativa-ARMv7
+          path: app/build/outputs/apk/debug/app-debug.apk
