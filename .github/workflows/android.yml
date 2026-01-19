@@ -5,6 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -20,8 +21,13 @@ jobs:
         run: |
           gradle wrapper --gradle-version 8.4
           chmod +x gradlew
-          # Gera o APK de release (ainda não assinado)
           ./gradlew assembleRelease
+
+      # NOVO: Localizar o zipalign manualmente para evitar o erro de "not found"
+      - name: Get zipalign path
+        run: |
+          ZIPALIGN=$(find $ANDROID_HOME/build-tools -name zipalign | sort -r | head -n 1)
+          echo "ZIPALIGN_PATH=$ZIPALIGN" >> $GITHUB_ENV
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
@@ -32,6 +38,8 @@ jobs:
           alias: ${{ secrets.ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0" # Força uma versão moderna
 
       - name: Upload Signed APK
         uses: actions/upload-artifact@v4
