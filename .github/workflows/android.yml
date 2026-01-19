@@ -1,4 +1,4 @@
-name: Build Nativo Release
+name: Build Multi-Arquitetura
 on: [push]
 jobs:
   build:
@@ -17,10 +17,11 @@ jobs:
           mkdir -p app/src/main/res/mipmap-mdpi
           cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png 2>/dev/null || touch app/src/main/res/mipmap-mdpi/ic_launcher.png
 
-      - name: Build Universal Release APK
+      - name: Build All Architectures
         run: |
           gradle wrapper --gradle-version 8.4
           chmod +x gradlew
+          # O parâmetro clean garante que ele gere os splits novos
           ./gradlew clean assembleRelease
 
       - name: Get zipalign path
@@ -28,7 +29,7 @@ jobs:
           ZIPALIGN=$(find $ANDROID_HOME/build-tools -name zipalign | sort -r | head -n 1)
           echo "ZIPALIGN_PATH=$ZIPALIGN" >> $GITHUB_ENV
 
-      - name: Sign APK
+      - name: Sign All APKs
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
@@ -40,13 +41,27 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Rename APK to com.salyan.biblia.apk
+      - name: Rename APKs Professionally
         run: |
-          # Pega o arquivo assinado gerado no passo anterior e renomeia
-          mv "${{ steps.sign_app.outputs.signedReleaseFile }}" app/build/outputs/apk/release/com.salyan.biblia.apk
+          cd app/build/outputs/apk/release
+          # Renomeia cada arquivo assinado para um nome bonito
+          # Ex: app-arm64-v8a-release-unsigned-signed.apk -> com.salyan.biblia-arm64.apk
+          
+          # Universal
+          mv *universal-release-unsigned-signed.apk com.salyan.biblia-universal.apk 2>/dev/null || true
+          
+          # ARM64 (Celulares Novos)
+          mv *arm64-v8a-release-unsigned-signed.apk com.salyan.biblia-arm64.apk 2>/dev/null || true
+          
+          # ARMv7 (Celulares Antigos/32bits)
+          mv *armeabi-v7a-release-unsigned-signed.apk com.salyan.biblia-armv7.apk 2>/dev/null || true
+          
+          # x86 (Emuladores/Chromebooks)
+          mv *x86-release-unsigned-signed.apk com.salyan.biblia-x86.apk 2>/dev/null || true
+          mv *x86_64-release-unsigned-signed.apk com.salyan.biblia-x86_64.apk 2>/dev/null || true
 
-      - name: Upload Final APK
+      - name: Upload All APKs
         uses: actions/upload-artifact@v4
         with:
-          name: Biblia-Pro-Final
-          path: app/build/outputs/apk/release/com.salyan.biblia.apk
+          name: Biblia-Pro-Todas-Versoes
+          path: app/build/outputs/apk/release/com.salyan.biblia-*.apk
