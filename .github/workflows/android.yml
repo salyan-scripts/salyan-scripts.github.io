@@ -17,13 +17,12 @@ jobs:
           mkdir -p app/src/main/res/mipmap-mdpi
           cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png 2>/dev/null || touch app/src/main/res/mipmap-mdpi/ic_launcher.png
 
-      - name: Build Release APK
+      - name: Build Universal Release APK
         run: |
           gradle wrapper --gradle-version 8.4
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew clean assembleRelease
 
-      # NOVO: Localizar o zipalign manualmente para evitar o erro de "not found"
       - name: Get zipalign path
         run: |
           ZIPALIGN=$(find $ANDROID_HOME/build-tools -name zipalign | sort -r | head -n 1)
@@ -39,10 +38,15 @@ jobs:
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
         env:
-          BUILD_TOOLS_VERSION: "34.0.0" # Força uma versão moderna
+          BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Upload Signed APK
+      - name: Rename APK to com.salyan.biblia.apk
+        run: |
+          # Pega o arquivo assinado gerado no passo anterior e renomeia
+          mv "${{ steps.sign_app.outputs.signedReleaseFile }}" app/build/outputs/apk/release/com.salyan.biblia.apk
+
+      - name: Upload Final APK
         uses: actions/upload-artifact@v4
         with:
-          name: Biblia-Pro-Assinada
-          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          name: Biblia-Pro-Final
+          path: app/build/outputs/apk/release/com.salyan.biblia.apk
