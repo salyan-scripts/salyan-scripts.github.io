@@ -18,6 +18,7 @@
             --bg: #121212; --text: #e9ecef; --panel: #2b2f33; --border: #3d4246; --accent: #339af0;
         }
 
+        /* Definições de Fontes para funcionamento Offline */
         .font-jornal { font-family: 'Crimson Pro', 'Georgia', 'Times New Roman', serif; }
         .font-moderna { font-family: 'Lato', 'Verdana', sans-serif; }
         .font-padrao { font-family: 'Inter', 'system-ui', sans-serif; }
@@ -63,8 +64,6 @@
         .btn-group button.active { background: var(--accent); color: white; border-color: var(--accent); }
 
         #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 25px; border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 3000; }
-
-        .highlight { background-color: #ffff99; }
     </style>
 </head>
 <body data-theme="light">
@@ -74,7 +73,7 @@
         📖 <span id="cur-ref">Gênesis 1</span>
     </div>
     <div class="search-box">
-        <input type="text" id="inp-search" placeholder="Ex: João 3.16 ou João 3,16" autocomplete="off">
+        <input type="text" id="inp-search" placeholder="Ex: João 3" autocomplete="off">
         <button class="icon-btn" onclick="doSearch()">🔍</button>
     </div>
     <button class="icon-btn" onclick="toggleModal(true)">⚙️</button>
@@ -87,11 +86,6 @@
 <footer>
     <h3 style="text-align:center; margin-bottom: 20px;">Índice de Livros</h3>
     <div class="book-grid" id="footer-books"></div>
-    <div style="margin-top: 20px; text-align: center;">
-        <select id="chapter-select" style="padding: 10px; font-size: 16px; border: 1px solid var(--border); border-radius: 5px; background: var(--panel); color: var(--text);">
-            <option value="">Selecione Capítulo</option>
-        </select>
-    </div>
 </footer>
 
 <div class="nav-bar">
@@ -141,6 +135,7 @@
 <div id="toast">Copiado para a área de transferência!</div>
 
 <script>
+    // Registro Robusto do Service Worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
@@ -170,14 +165,14 @@
             renderBooks();
             applyCfg();
             draw();
-            populateChapters();
         } catch(e) { 
             document.getElementById('bible-box').innerHTML = "Bíblia disponível offline. Carregando...";
+            // Tenta carregar novamente após 1s caso o SW ainda esteja populando o cache
             setTimeout(init, 1000);
         }
     }
 
-    function draw(highlightVerse = null) {
+    function draw() {
         const box = document.getElementById('bible-box');
         if(!data.acf[cfg.b]) return;
         
@@ -189,8 +184,7 @@
         const chN = data.nvi[cfg.b].chapters[cfg.c];
 
         chA.forEach((v, i) => {
-            const verseId = `verse-${i+1}`;
-            html += `<div id="${verseId}" class="verse-row" onclick="copyVerse(this, '${bNames[cfg.b]} ${cfg.c+1}:${i+1}')">`;
+            html += `<div class="verse-row" onclick="copyVerse(this, '${bNames[cfg.b]} ${cfg.c+1}:${i+1}')">`;
             if(cfg.v === 'acf' || cfg.v === 'dual') {
                 html += `<div><span class="v-num">${i+1}</span>${v}</div>`;
             }
@@ -204,39 +198,21 @@
         box.innerHTML = html;
         window.scrollTo(0,0);
         localStorage.setItem('biblia_v5_save', JSON.stringify(cfg));
-
-        if (highlightVerse) {
-            setTimeout(() => {
-                const el = document.getElementById(`verse-${highlightVerse}`);
-                if (el) {
-                    el.classList.add('highlight');
-                    el.scrollIntoView({ behavior: 'smooth' });
-                    setTimeout(() => el.classList.remove('highlight'), 3000);
-                }
-            }, 100);
-        }
     }
 
     function doSearch() {
         const inp = document.getElementById('inp-search');
-        let q = inp.value.toLowerCase().trim();
+        const q = inp.value.toLowerCase().trim();
         if(!q) return;
 
-        q = q.replace(',', '.');
-
-        const match = q.match(/(\d?\s?[a-zçãõêíóú]+)\s+(\d+)(?:\.(\d+))?/);
+        const match = q.match(/(\d?\s?[a-zçãõêíóú]+)\s+(\d+)/);
         if(match) {
             const name = match[1].trim();
             const chap = parseInt(match[2]) - 1;
-            const verse = match[3] ? parseInt(match[3]) : null;
             const idx = bNames.findIndex(n => n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").startsWith(name));
 
             if(idx !== -1 && chap >= 0 && chap < data.acf[idx].chapters.length) {
-                cfg.b = idx; 
-                cfg.c = chap; 
-                populateChapters();
-                document.getElementById('chapter-select').value = chap + 1;
-                draw(verse);
+                cfg.b = idx; cfg.c = chap; draw();
                 inp.blur();
             }
         }
@@ -251,45 +227,13 @@
             else if(cfg.b > 0) { cfg.b--; cfg.c = data.acf[cfg.b].chapters.length-1; }
         } else if(op==='nb') { if(cfg.b < 65) { cfg.b++; cfg.c=0; }
         } else if(op==='pb') { if(cfg.b > 0) { cfg.b--; cfg.c=0; } }
-        populateChapters();
-        document.getElementById('chapter-select').value = cfg.c + 1;
         draw();
     }
 
     function renderBooks() {
         document.getElementById('footer-books').innerHTML = bNames.map((n, i) => 
-            `<div class="book-btn" onclick="selectBook(${i})">${n}</div>`
+            `<div class="book-btn" onclick="cfg.b=${i}; cfg.c=0; draw(); window.scrollTo({top:0, behavior:'smooth'})">${n}</div>`
         ).join('');
-    }
-
-    function selectBook(i) {
-        cfg.b = i; 
-        cfg.c = 0; 
-        populateChapters();
-        document.getElementById('chapter-select').value = 1;
-        draw();
-        window.scrollTo({top:0, behavior:'smooth'});
-    }
-
-    function populateChapters() {
-        const select = document.getElementById('chapter-select');
-        select.innerHTML = '<option value="">Selecione Capítulo</option>';
-        if (data.acf[cfg.b]) {
-            const numChapters = data.acf[cfg.b].chapters.length;
-            for (let ch = 1; ch <= numChapters; ch++) {
-                const opt = document.createElement('option');
-                opt.value = ch;
-                opt.textContent = ch;
-                select.appendChild(opt);
-            }
-        }
-        select.addEventListener('change', (e) => {
-            const val = e.target.value;
-            if (val) {
-                cfg.c = val - 1;
-                draw();
-            }
-        });
     }
 
     function copyVerse(el, ref) {
