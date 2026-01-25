@@ -1,189 +1,203 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bíblia Online/Offline - Versão Melhorada</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #search { width: 300px; padding: 10px; margin-bottom: 10px; }
-        #book-select, #chapter-select { padding: 10px; margin-right: 10px; }
-        #content { margin-top: 20px; border: 1px solid #ccc; padding: 20px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bíblia Online/Offline</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#ffffff"/>
+  <!-- Seu CSS atual ou inline simples -->
+  <style>
+    body { font-family: Arial, sans-serif; margin: 15px; background: #f9f9f9; color: #333; }
+    h1 { text-align: center; color: #2c3e50; }
+    #controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; }
+    select, input { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
+    #search { width: 280px; }
+    #conteudo { 
+      max-width: 800px; margin: 0 auto; line-height: 1.7; 
+      background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .versiculo { margin: 10px 0; padding-left: 40px; position: relative; }
+    .versiculo::before { 
+      content: attr(data-v); 
+      position: absolute; left: 10px; color: #888; font-weight: bold;
+    }
+    .highlight { background-color: #ffff99 !important; transition: background 2s; }
+  </style>
 </head>
 <body>
-    <h1>Leitura da Bíblia</h1>
+
+  <h1>Bíblia Sagrada</h1>
+
+  <div id="controls">
+    <input type="text" id="search" placeholder="Ex: João 3.16 ou João 3 ou Romanos 8"/>
     
-    <input type="text" id="search" placeholder="Pesquise: ex. João 3.16 ou João 3,16 ou João 3">
+    <select id="livro">
+      <option value="">Selecione o Livro</option>
+    </select>
     
-    <div>
-        <select id="book-select">
-            <option value="">Selecione um Livro</option>
-        </select>
-        <select id="chapter-select" disabled>
-            <option value="">Selecione um Capítulo</option>
-        </select>
-    </div>
-    
-    <div id="content">Selecione um livro e capítulo para exibir o conteúdo.</div>
+    <select id="capitulo" disabled>
+      <option value="">Capítulo</option>
+    </select>
+  </div>
 
-    <script>
-        // Lista de livros e capítulos (extraída de fontes padrão da Bíblia em português)
-        const books = [
-            { name: "Gênesis", chapters: 50 },
-            { name: "Êxodo", chapters: 40 },
-            { name: "Levítico", chapters: 27 },
-            { name: "Números", chapters: 36 },
-            { name: "Deuteronômio", chapters: 34 },
-            { name: "Josué", chapters: 24 },
-            { name: "Juízes", chapters: 21 },
-            { name: "Rute", chapters: 4 },
-            { name: "1 Samuel", chapters: 31 },
-            { name: "2 Samuel", chapters: 24 },
-            { name: "1 Reis", chapters: 22 },
-            { name: "2 Reis", chapters: 25 },
-            { name: "1 Crônicas", chapters: 29 },
-            { name: "2 Crônicas", chapters: 36 },
-            { name: "Esdras", chapters: 10 },
-            { name: "Neemias", chapters: 13 },
-            { name: "Ester", chapters: 10 },
-            { name: "Jó", chapters: 42 },
-            { name: "Salmos", chapters: 150 },
-            { name: "Provérbios", chapters: 31 },
-            { name: "Eclesiastes", chapters: 12 },
-            { name: "Cantares", chapters: 8 },
-            { name: "Isaías", chapters: 66 },
-            { name: "Jeremias", chapters: 52 },
-            { name: "Lamentações", chapters: 5 },
-            { name: "Ezequiel", chapters: 48 },
-            { name: "Daniel", chapters: 12 },
-            { name: "Oséias", chapters: 14 },
-            { name: "Joel", chapters: 3 },
-            { name: "Amós", chapters: 9 },
-            { name: "Obadias", chapters: 1 },
-            { name: "Jonas", chapters: 4 },
-            { name: "Miquéias", chapters: 7 },
-            { name: "Naum", chapters: 3 },
-            { name: "Habacuque", chapters: 3 },
-            { name: "Sofonias", chapters: 3 },
-            { name: "Ageu", chapters: 2 },
-            { name: "Zacarias", chapters: 14 },
-            { name: "Malaquias", chapters: 4 },
-            { name: "Mateus", chapters: 28 },
-            { name: "Marcos", chapters: 16 },
-            { name: "Lucas", chapters: 24 },
-            { name: "João", chapters: 21 },
-            { name: "Atos dos Apóstolos", chapters: 28 },
-            { name: "Romanos", chapters: 16 },
-            { name: "1 Coríntios", chapters: 16 },
-            { name: "2 Coríntios", chapters: 13 },
-            { name: "Gálatas", chapters: 6 },
-            { name: "Efésios", chapters: 6 },
-            { name: "Filipenses", chapters: 4 },
-            { name: "Colossenses", chapters: 4 },
-            { name: "1 Tessalonicenses", chapters: 5 },
-            { name: "2 Tessalonicenses", chapters: 3 },
-            { name: "1 Timóteo", chapters: 6 },
-            { name: "2 Timóteo", chapters: 4 },
-            { name: "Tito", chapters: 3 },
-            { name: "Filemom", chapters: 1 },
-            { name: "Hebreus", chapters: 13 },
-            { name: "Tiago", chapters: 5 },
-            { name: "1 Pedro", chapters: 5 },
-            { name: "2 Pedro", chapters: 3 },
-            { name: "1 João", chapters: 5 },
-            { name: "2 João", chapters: 1 },
-            { name: "3 João", chapters: 1 },
-            { name: "Judas", chapters: 1 },
-            { name: "Apocalipse", chapters: 22 }
-        ];
+  <div id="conteudo">Selecione um livro e capítulo para ler</div>
 
-        // Preencher dropdown de livros
-        const bookSelect = document.getElementById('book-select');
-        books.forEach(book => {
-            const option = document.createElement('option');
-            option.value = book.name;
-            option.textContent = book.name;
-            bookSelect.appendChild(option);
-        });
+  <!-- Estrutura da Bíblia (número de capítulos por livro) -->
+  <script>
+    const bibliaEstrutura = [
+      {nome:"Gênesis", caps:50}, {nome:"Êxodo", caps:40}, {nome:"Levítico", caps:27},
+      {nome:"Números", caps:36}, {nome:"Deuteronômio", caps:34}, {nome:"Josué", caps:24},
+      {nome:"Juízes", caps:21}, {nome:"Rute", caps:4}, {nome:"1 Samuel", caps:31},
+      {nome:"2 Samuel", caps:24}, {nome:"1 Reis", caps:22}, {nome:"2 Reis", caps:25},
+      {nome:"1 Crônicas", caps:29}, {nome:"2 Crônicas", caps:36}, {nome:"Esdras", caps:10},
+      {nome:"Neemias", caps:13}, {nome:"Ester", caps:10}, {nome:"Jó", caps:42},
+      {nome:"Salmos", caps:150}, {nome:"Provérbios", caps:31}, {nome:"Eclesiastes", caps:12},
+      {nome:"Cantares", caps:8}, {nome:"Isaías", caps:66}, {nome:"Jeremias", caps:52},
+      {nome:"Lamentações", caps:5}, {nome:"Ezequiel", caps:48}, {nome:"Daniel", caps:12},
+      {nome:"Oséias", caps:14}, {nome:"Joel", caps:3}, {nome:"Amós", caps:9},
+      {nome:"Obadias", caps:1}, {nome:"Jonas", caps:4}, {nome:"Miquéias", caps:7},
+      {nome:"Naum", caps:3}, {nome:"Habacuque", caps:3}, {nome:"Sofonias", caps:3},
+      {nome:"Ageu", caps:2}, {nome:"Zacarias", caps:14}, {nome:"Malaquias", caps:4},
+      {nome:"Mateus", caps:28}, {nome:"Marcos", caps:16}, {nome:"Lucas", caps:24},
+      {nome:"João", caps:21}, {nome:"Atos", caps:28}, {nome:"Romanos", caps:16},
+      {nome:"1 Coríntios", caps:16}, {nome:"2 Coríntios", caps:13}, {nome:"Gálatas", caps:6},
+      {nome:"Efésios", caps:6}, {nome:"Filipenses", caps:4}, {nome:"Colossenses", caps:4},
+      {nome:"1 Tessalonicenses", caps:5}, {nome:"2 Tessalonicenses", caps:3},
+      {nome:"1 Timóteo", caps:6}, {nome:"2 Timóteo", caps:4}, {nome:"Tito", caps:3},
+      {nome:"Filemom", caps:1}, {nome:"Hebreus", caps:13}, {nome:"Tiago", caps:5},
+      {nome:"1 Pedro", caps:5}, {nome:"2 Pedro", caps:3}, {nome:"1 João", caps:5},
+      {nome:"2 João", caps:1}, {nome:"3 João", caps:1}, {nome:"Judas", caps:1},
+      {nome:"Apocalipse", caps:22}
+    ];
 
-        // Ao selecionar livro, preencher capítulos
-        bookSelect.addEventListener('change', function() {
-            const selectedBook = this.value;
-            const chapterSelect = document.getElementById('chapter-select');
-            chapterSelect.innerHTML = '<option value="">Selecione um Capítulo</option>';
-            chapterSelect.disabled = true;
+    // Popular select de livros
+    const selLivro = document.getElementById('livro');
+    bibliaEstrutura.forEach(liv => {
+      const opt = document.createElement('option');
+      opt.value = liv.nome;
+      opt.textContent = liv.nome;
+      selLivro.appendChild(opt);
+    });
 
-            if (selectedBook) {
-                const bookData = books.find(b => b.name === selectedBook);
-                if (bookData) {
-                    for (let i = 1; i <= bookData.chapters; i++) {
-                        const option = document.createElement('option');
-                        option.value = i;
-                        option.textContent = i;
-                        chapterSelect.appendChild(option);
-                    }
-                    chapterSelect.disabled = false;
-                }
-            }
-        });
+    // Ao mudar livro → popular capítulos
+    selLivro.addEventListener('change', () => {
+      const livro = selLivro.value;
+      const selCap = document.getElementById('capitulo');
+      selCap.innerHTML = '<option value="">Capítulo</option>';
+      selCap.disabled = true;
 
-        // Ao selecionar capítulo, exibir conteúdo (placeholder - integre com seu JSON)
-        const chapterSelect = document.getElementById('chapter-select');
-        chapterSelect.addEventListener('change', function() {
-            const book = bookSelect.value;
-            const chapter = this.value;
-            if (book && chapter) {
-                loadContent(book, chapter); // Função para carregar do JSON
-            }
-        });
-
-        // Função de pesquisa aprimorada
-        const searchInput = document.getElementById('search');
-        searchInput.addEventListener('keyup', function(event) {
-            if (event.key === 'Enter') {
-                const query = this.value.trim();
-                parseAndLoad(query);
-            }
-        });
-
-        // Parsear a consulta: ex. "João 3.16" ou "João 3,16" ou "João 3"
-        function parseAndLoad(query) {
-            // Regex para capturar livro, capítulo e versículo opcional
-            const match = query.match(/^([\w\s]+?)\s*(\d+)([.,](\d+))?$/);
-            if (match) {
-                const bookName = match[1].trim();
-                const chapter = parseInt(match[2]);
-                const verse = match[4] ? parseInt(match[4]) : null;
-
-                // Selecionar o livro
-                if (books.some(b => b.name === bookName)) {
-                    bookSelect.value = bookName;
-                    bookSelect.dispatchEvent(new Event('change')); // Trigger chapters
-
-                    // Selecionar o capítulo
-                    chapterSelect.value = chapter;
-                    chapterSelect.dispatchEvent(new Event('change')); // Load content
-
-                    // Se houver versículo, destaque ou role para ele (implemente aqui)
-                    if (verse) {
-                        alert(`Navegando para ${bookName} ${chapter}:${verse}`);
-                        // Aqui você pode rolar para o versículo no conteúdo carregado
-                    }
-                } else {
-                    alert('Livro não encontrado.');
-                }
-            } else {
-                alert('Formato inválido. Use: Livro capítulo.versículo ou Livro capítulo,versículo');
-            }
+      if (livro) {
+        const info = bibliaEstrutura.find(l => l.nome === livro);
+        if (info) {
+          for (let i = 1; i <= info.caps; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i;
+            selCap.appendChild(opt);
+          }
+          selCap.disabled = false;
         }
+      }
+      document.getElementById('conteudo').innerHTML = 'Selecione o capítulo...';
+    });
 
-        // Função placeholder para carregar conteúdo do capítulo (integre com nvi.json ou acf.json)
-        function loadContent(book, chapter) {
-            const contentDiv = document.getElementById('content');
-            contentDiv.innerHTML = `Carregando ${book} capítulo ${chapter}...<br><br>(Integre aqui o código para fetch do JSON e exibir os versículos. Seu site original provavelmente já tem isso via service worker ou script.)`;
-            // Exemplo: fetch('nvi.json').then(...).then(data => displayVerses(data.books.find(b => b.name === book).chapters[chapter-1]));
+    // Ao mudar capítulo → carregar (substitua pelo seu código real de fetch)
+    document.getElementById('capitulo').addEventListener('change', carregarCapitulo);
+
+    // Sua função de carregamento (exemplo – substitua pela sua lógica real com nvi.json ou acf.json)
+    function carregarCapitulo() {
+      const livro = selLivro.value;
+      const cap = document.getElementById('capitulo').value;
+      const area = document.getElementById('conteudo');
+
+      if (!livro || !cap) return;
+
+      area.innerHTML = `<p>Carregando ${livro} ${cap}...</p>`;
+
+      // EXEMPLO – adapte ao seu código atual de fetch/service worker
+      fetch('nvi.json') // ou 'acf.json' – ou use cache do SW
+        .then(r => r.json())
+        .then(data => {
+          // Supondo estrutura: data[0] = Antigo Testamento, data[1] = Novo, ou data.books
+          // Ajuste conforme seu JSON real
+          let livroData;
+          for (let testamento of data) {
+            livroData = testamento.books?.find(b => b.name === livro || b.abbrev === livro);
+            if (livroData) break;
+          }
+
+          if (livroData && livroData.chapters[cap-1]) {
+            let html = `<h2>${livro} ${cap}</h2>`;
+            livroData.chapters[cap-1].forEach((vers, idx) => {
+              const num = idx + 1;
+              html += `<div class="versiculo" data-v="${num}" id="v${num}">${vers}</div>`;
+            });
+            area.innerHTML = html;
+          } else {
+            area.innerHTML = '<p>Capítulo não encontrado no JSON.</p>';
+          }
+        })
+        .catch(err => {
+          area.innerHTML = '<p>Erro ao carregar: ' + err + '<br>Verifique se está online ou se o cache está ok.</p>';
+        });
+    }
+
+    // Pesquisa avançada
+    document.getElementById('search').addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        let q = e.target.value.trim();
+        q = q.replace(',', '.'); // normaliza 3,16 → 3.16
+
+        const match = q.match(/^(.+?)\s+(\d+)(?:\.(\d+))?$/i);
+        if (match) {
+          const livroDigitado = match[1].trim();
+          const cap = parseInt(match[2]);
+          const vers = match[3] ? parseInt(match[3]) : null;
+
+          const encontrado = bibliaEstrutura.find(l => 
+            l.nome.toLowerCase().includes(livroDigitado.toLowerCase()) ||
+            l.nome.toLowerCase() === livroDigitado.toLowerCase()
+          );
+
+          if (encontrado) {
+            selLivro.value = encontrado.nome;
+            selLivro.dispatchEvent(new Event('change'));
+
+            setTimeout(() => {
+              const selCap = document.getElementById('capitulo');
+              if (selCap.querySelector(`option[value="${cap}"]`)) {
+                selCap.value = cap;
+                selCap.dispatchEvent(new Event('change'));
+
+                if (vers) {
+                  setTimeout(() => {
+                    const el = document.getElementById(`v${vers}`) || 
+                               document.querySelector(`[data-v="${vers}"]`);
+                    if (el) {
+                      el.classList.add('highlight');
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      setTimeout(() => el.classList.remove('highlight'), 2500);
+                    }
+                  }, 600); // tempo para o capítulo renderizar
+                }
+              }
+            }, 400);
+          } else {
+            alert('Livro não encontrado: ' + livroDigitado);
+          }
+        } else {
+          alert('Use formato: Livro capítulo ou Livro capítulo.versículo\nEx: João 3.16');
         }
-    </script>
+      }
+    });
+
+    // Registro do Service Worker (mantenha se já tiver)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('SW registrado'))
+        .catch(err => console.error('Erro SW:', err));
+    }
+  </script>
 </body>
 </html>
